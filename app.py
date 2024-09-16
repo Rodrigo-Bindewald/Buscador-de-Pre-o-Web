@@ -18,3 +18,24 @@
 5. (Bônus) - Opcional
    Criar uma interface gráfica para receber o input(entrada de dados) do usuário
 '''
+# Importando Bibliotéca e configurando webdriver
+from selenium import webdriver
+
+# Criando uma instância do Seervice com o ChromeDriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+
+# Configurando o Chrome para rodar em modo "headless"(invisível)
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+
+# Caminho para o ChromeDriver
+service = Service('/usr/local/bin/chromedriver')
+driver = webdriver.Chrome(service=service)
+
+# Acessando o Google para teste
+driver.get("http://www.google.com")
+print('Título da página:', driver.title)
+
+# Fechar o navegador após o input
+driver.quit()
