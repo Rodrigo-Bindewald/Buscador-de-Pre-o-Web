@@ -18,12 +18,14 @@
 5. (Bônus) - Opcional
    Criar uma interface gráfica para receber o input(entrada de dados) do usuário
 '''
-# Importando Bibliotéca e configurando webdriver
+# Importando Bibliotéca e módulos webdriver e by
 from selenium import webdriver
-
-# Criando uma instância do Seervice com o ChromeDriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+
+# 1 Entrada de dados via terminal
+produto = input('Digite o nome do produto que deseja buscar: ')
 
 # Configurando o Chrome para rodar em modo "headless"(invisível)
 chrome_options = Options()
@@ -36,6 +38,18 @@ driver = webdriver.Chrome(service=service)
 # Acessando o Google para teste
 driver.get("http://www.google.com")
 print('Título da página:', driver.title)
+
+#  2 Funções de busca
+
+# Função para busca no Mercado Livre
+def busca_mercado_livre(produto):
+    driver.get("https://www.mercadolivre.com.br")
+    pass
+
+# Função para busca nas Americanas
+def busca_americanas(produto):
+    driver.get("https://www.americanas.com.br")
+    pass
 
 # Fechar o navegador após o input
 driver.quit()
