@@ -42,14 +42,41 @@ print('Título da página:', driver.title)
 #  2 Funções de busca
 
 # Função para busca no Mercado Livre
-def busca_mercado_livre(produto):
-    driver.get("https://www.mercadolivre.com.br")
-    pass
+def buscar_mercado_livre(produto):
+    driver.get("https://www.mercadolivre.com.br") 
+    search_box = driver.find_element(By.NAME, 'as_word') 
+    search_box.send_keys(produto)
+    search_box.submit()
+
+    # Aguarda a página carregar e coleta o preço do primeiro item
+    driver.implicitly_wait(10)
+    try:
+        preco_mercado_livre = driver.find_element(By.CLASS_NAME, 'prince-tag-fraction').text
+        link_mercado_livre = driver.find_element(By.CSS_SELECTOR, 'a.ui-search-link').get_attribute('href')
+        return float(preco_mercado_livre.replace('.', '').replace(',', '.')), link_mercado_livre
+    except Exception as e:
+        print('Erro ao buscar no Mercado Publico', e) # e(objeto de exceção)
+        return None, None        
 
 # Função para busca nas Americanas
-def busca_americanas(produto):
+def buscar_americanas(produto):
     driver.get("https://www.americanas.com.br")
-    pass
+    search_box = driver.find_element(By.ID, 'h_search-input')
+    search_box.send_keys(produto)
+    search_box.submit
+
+    driver.implicitly_wait(10)
+    try:
+        preco_americanas = driver.find_element(By.CLASS_NAME, 'src__BestPrice-sc-1jvw02c-5').text
+        link_americanas = driver.find_element(By.CSS_SELECTOR, 'a[href^="/produto"]').get_attribute('href')
+        return float(preco_americanas.replace('R$', '').replace('.', '').replace(',', '.')), link_americanas
+    except Exception as e:
+        print('Erro ao buscar nas Americanas:', e)
+        return None, None
+
+# Buscando o produto nos dois sites
+preco_ml, link_ml = buscar_mercado_livre(produto)
+preco_am, link_am = buscar_americanas(produto)
 
 # Fechar o navegador após o input
 driver.quit()
