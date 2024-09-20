@@ -28,18 +28,9 @@ from selenium.webdriver.common.by import By
 # 1 Entrada de dados via terminal
 produto = input('Digite o nome do produto que deseja buscar: ')
 
-# Configurando o Chrome para rodar em modo "headless"(invisível)
-'''chrome_options = Options()
-chrome_options.add_argument('--headless')
-chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-chrome_options.add_argument('--start-maximized')
-chrome_options.add_argument('--disable-notifications')
-chrome_options.add_argument('--incognito')
-chrome_options.add_argument('--disable-extensions')'''
-
 # Testando configuração para o Chrome
 chrome_options = Options()
-chrome_options.add_argument('--headless')
+#chrome_options.add_argument('--headless')
 chrome_options.add_argument('--lang=pt-BR')
 chrome_options.add_argument('--window-size=800,800')
 chrome_options.add_argument('--disable-notifications')
@@ -51,67 +42,110 @@ driver = webdriver.Chrome(service=service, options=chrome_options)
 # Função para fechar popups
 def fechar_popups():
     try:
-        popup_close_button = driver.find_element(By.CLASS_NAME, 'some-close-class')  # Atualize com o seletor correto
-        popup_close_button.click()
-        print("Pop-up fechado")
+        # Encontrar e fechar elementos de pop-up comuns caso tenha       
+        popup_close_buttons = [
+            ('CLASS_NAME', 'andes-modal__close'),
+            ('CLASS_NAME', 'close-button'),
+            ('CSS_SELECTOR', '[aria-label="Fechar"]'),
+            ('XPATH', '//button[contains(text(), "Fechar")]'),
+        ]
+
+        for method, selector in popup_close_buttons:
+            try:
+                element = driver.find_element(getattr(By, method), selector)
+                element.click()
+                print(f"Pop-up fechado com {method}: {selector}")
+                break  # Encerra se encontrar um pop-up
+            except:
+                continue  # Tenta o próximo método/selector
+
+        print("Nenhum pop-up encontrado")
+        
     except Exception as e:
-        print('Nenhum pop-up encontrado', e)
+        print("Erro ao tentar fechar pop-up", e)
 
-
-#  2 Funções de busca
-
+# 2 Funções de busca
 # Função para busca no Mercado Livre
 def buscar_mercado_livre(produto):
     driver.get("https://www.mercadolivre.com.br")
     fechar_popups() 
     search_box = driver.find_element(By.NAME, 'as_word') 
-    search_box.send_keys(produto)
+    search_box.send_keys(produto)    
     search_box.submit()
 
     # Aguarda a página carregar e coleta o preço do item
     driver.implicitly_wait(10)
-    try:      
-        preco_mercado_livre = driver.find_element(By.CLASS_NAME, 'price-tag-fraction').text      
-        link_mercado_livre = driver.find_element(By.CSS_SELECTOR, 'a.ui-search-link').get_attribute('href')
-        return float(preco_mercado_livre.replace('.', '').replace(',', '.')), link_mercado_livre
-    except Exception as e:
-        print('Erro ao buscar no Mercado Livre', e) # e(objeto de exceção)
-        return None, None        
+    try:
+        # Capturando a parte inteira do preço
+        preco_inteiro = driver.find_element(By.CLASS_NAME, 'andes-money-amount__fraction').text
+        
+        # Capturar os centavos (se existirem)
+        try:
+            preco_centavos = driver.find_element(By.CLASS_NAME, 'andes-money-amount__cents').text
+        except:
+            preco_centavos = '00'  # Se não encontrar os centavos, assume que é '.00'
 
-# Função para busca nas Americanas
-def buscar_americanas(produto):
-    driver.get("https://www.americanas.com.br")
-    fechar_popups()
-    search_box = driver.find_element(By.NAME, 'conteudo')    
+        # Montando o preço com o separador de centavos
+        preco_completo = f"{preco_inteiro},{preco_centavos}"
+
+        # Convertendo para float, preservando os separadores corretos
+        preco_mercado_livre = float(preco_completo.replace('.', '').replace(',', '.'))
+        
+        # Capturando o link do produto
+        link_mercado_livre = driver.find_element(By.CSS_SELECTOR, 'a.ui-search-link').get_attribute('href')
+        
+        return preco_mercado_livre, link_mercado_livre
+    except Exception as e:
+        print('Erro ao buscar no Mercado Livre', e)
+        return None, None
+    
+# Função para busca na Amazon
+def buscar_amazon(produto):
+    driver.get("https://www.amazon.com.br")
+    fechar_popups()  
+    search_box = driver.find_element(By.ID, 'twotabsearchtextbox')    
     search_box.send_keys(produto)
     search_box.submit()
 
     driver.implicitly_wait(10)
-    try:
-        preco_americanas = driver.find_element(By.CLASS_NAME, 'src__BestPrice-sc-1jvw02c-5').text
-        link_americanas = driver.find_element(By.CSS_SELECTOR, 'a[href^="/produto"]').get_attribute('href')
-        return float(preco_americanas.replace('R$', '').replace('.', '').replace(',', '.')), link_americanas
+
+    try:        
+        preco_inteiro = driver.find_element(By.CLASS_NAME, 'a-price-whole').text     
+        
+        try:
+            preco_centavos = driver.find_element(By.CLASS_NAME, 'a-price-fraction').text
+        except:
+            preco_centavos = '00'
+      
+        preco_completo = f"{preco_inteiro},{preco_centavos}"
+        
+        preco_amazon = float(preco_completo.replace('.', '').replace(',', '.'))
+        
+        # Capturar o link do produto na Amazon
+        link_amazon = driver.find_element(By.CSS_SELECTOR, 'a.a-link-normal.s-no-outline').get_attribute('href')
+        
+        return preco_amazon, link_amazon
+
     except Exception as e:
-        print('Erro ao buscar nas Americanas:', e)
+        print('Erro ao buscar na Amazon:', e)
         return None, None
 
 # Buscando o produto nos dois sites
 preco_ml, link_ml = buscar_mercado_livre(produto)
-preco_am, link_am = buscar_americanas(produto)
+preco_am, link_am = buscar_amazon(produto)
 
-# Comparando os preços
+# 3 Comparando os preços e exibindo o menor preço
 if preco_ml and preco_am:
    if preco_ml < preco_am:
       print(f'Menor preço encontrado no Mercado Livre: R${preco_ml}\nLink: {link_ml}')
    else:
-    print(f'Menor preço encontrado nas Americanas: R${preco_am}\nLink: {link_am}')
+    print(f'Menor preço encontrado na Amazon: R${preco_am}\nLink: {link_am}')
 elif preco_ml:
    print(f'Somente o Mercado Livre retornou resultado: R${preco_ml}\nLink: {link_ml}')
 elif preco_am:
-   print(f'Somente as Americanas retornaram resultado: R${preco_am}\nLink: {link_am}')
+   print(f'Somente as Amazon retornaram resultado: R${preco_am}\nLink: {link_am}')
 else:
-   print(f'Nenhum preço foi encontraado')
-      
+   print(f'Nenhum preço foi encontrado')     
 
-# Fechar o navegador após o input
+# 4 Fechar o navegador após o input
 driver.quit()
