@@ -37,7 +37,7 @@ def buscar():
     
     # Configuração do Chrome
     chrome_options = Options()
-    #chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--headless')
     chrome_options.add_argument('--lang=pt-BR')
     chrome_options.add_argument('--window-size=800,800')
     chrome_options.add_argument('--disable-notifications')
